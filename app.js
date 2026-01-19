@@ -1,124 +1,155 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8"/>
-  <title>WebAR — PNG uniquement</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+// ============================================================================
+// AR-TARGET-LOADER : PNG uniquement (sans audio ni 3D)
+// ============================================================================
 
-  <!-- A-Frame & MindAR -->
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+AFRAME.registerComponent('ar-target-loader', {
+  schema: {
+    // PNG animation
+    pngPrefix: { type: 'string', default: '' },
+    fps: { type: 'number', default: 12 },
+    pad: { type: 'number', default: 3 },
+    
+    // Sizing
+    unitWidth: { type: 'number', default: 1 },
+    fit: { type: 'string', default: 'width' } // 'width' | 'height' | 'stretch'
+  },
 
-  <!-- Animation mixer (jouer les animations GLB/GLTF) -->
-  <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+  init() {
+    this.frames = [];
+    this.currentFrame = 0;
+    this.animationId = null;
+    this.plane = null;
+    this.isPlaying = false;
 
-  <!-- Votre logique -->
-  <script defer src="app.js"></script>
+    // Écouter les événements de tracking
+    this.el.addEventListener('targetFound', this.onTargetFound.bind(this));
+    this.el.addEventListener('targetLost', this.onTargetLost.bind(this));
 
-  <!-- Plein écran + transparence -->
-  <style>
-    html, body, a-scene, canvas {
-      margin: 0; padding: 0;
-      width: 100vw; height: 100vh;
-      overflow: hidden; background: transparent;
-      position: fixed; top: 0; left: 0;
+    // Charger les PNGs
+    if (this.data.pngPrefix) {
+      this.loadPNGAnimation();
     }
-    video {
-      position: fixed !important; top: 0 !important; left: 0 !important;
-      width: 100vw !important; height: 100vh !important;
-      object-fit: cover !important; z-index: 0 !important;
+  },
+
+  async loadPNGAnimation() {
+    const prefix = this.data.pngPrefix;
+    const pad = this.data.pad;
+    
+    // Découvrir combien de frames existent
+    let frameIndex = 0;
+    const maxAttempts = 1000; // limite de sécurité
+    
+    while (frameIndex < maxAttempts) {
+      const framePath = `${prefix}${String(frameIndex).padStart(pad, '0')}.png`;
+      
+      try {
+        const exists = await this.checkImageExists(framePath);
+        if (!exists) break;
+        
+        this.frames.push(framePath);
+        frameIndex++;
+      } catch (e) {
+        break;
+      }
     }
-    a-scene, canvas { z-index: 1 !important; background: transparent !important; }
-    .mindar-ui-overlay, .mindar-ui-loader { z-index: 2 !important; background: transparent !important; }
-  </style>
-</head>
-<body>
-  <a-scene
-    mindar-image="imageTargetSrc: ./targets/targets.mind;"
-    embedded
-    renderer="antialias: true; alpha: true;"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: true"
-  >
-    <a-camera look-controls="enabled:false"></a-camera>
 
-    <!-- TARGET 0 : PNG uniquement (SANS modelsDir ni audioPrefix) -->
-    <a-entity
-      mindar-image-target="targetIndex: 0"
-      ar-target-loader="pngPrefix: ./animations/target0/frame_; fps: 12; unitWidth: 1; fit: width;">
-    </a-entity>
+    if (this.frames.length === 0) {
+      console.warn(`Aucune frame PNG trouvée pour ${prefix}`);
+      return;
+    }
 
-    <!-- TARGET 1 -->
-    <a-entity
-      mindar-image-target="targetIndex: 1"
-      ar-target-loader="pngPrefix: ./animations/target1/frame_; fps: 12; unitWidth: 1; fit: width;">
-    </a-entity>
+    console.log(`✅ ${this.frames.length} frames chargées pour ${prefix}`);
+    
+    // Créer le plane d'affichage
+    this.createPlane();
+  },
 
-    <!-- TARGET 2 -->
-    <a-entity
-      mindar-image-target="targetIndex: 2"
-      ar-target-loader="pngPrefix: ./animations/target2/frame_; fps: 12; unitWidth: 1; fit: width;">
-    </a-entity>
+  checkImageExists(url) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+    });
+  },
 
-    <!-- TARGET 3 -->
-    <a-entity
-      mindar-image-target="targetIndex: 3"
-      ar-target-loader="pngPrefix: ./animations/target3/frame_; fps: 12; unitWidth: 1; fit: width;">
-    </a-entity>
+  createPlane() {
+    // Créer le plane
+    this.plane = document.createElement('a-plane');
+    this.plane.setAttribute('material', {
+      src: this.frames[0],
+      transparent: true,
+      alphaTest: 0.01,
+      shader: 'flat'
+    });
 
-    <!-- TARGET 4 -->
-    <a-entity
-      mindar-image-target="targetIndex: 4"
-      ar-target-loader="pngPrefix: ./animations/target4/frame_; fps: 12; unitWidth: 1; fit: width;">
-    </a-entity>
+    // Sizing selon le fit
+    const w = this.data.unitWidth;
+    const h = this.data.unitWidth;
 
-    <!-- TARGET 5 -->
-    <a-entity
-      mindar-image-target="targetIndex: 5"
-      ar-target-loader="pngPrefix: ./animations/target5/frame_; fps: 12; unitWidth: 1; fit: width;">
-    </a-entity>
+    switch (this.data.fit) {
+      case 'height':
+        this.plane.setAttribute('height', h);
+        this.plane.setAttribute('width', 'auto');
+        break;
+      case 'stretch':
+        this.plane.setAttribute('width', w);
+        this.plane.setAttribute('height', h);
+        break;
+      default: // 'width'
+        this.plane.setAttribute('width', w);
+        this.plane.setAttribute('height', 'auto');
+    }
 
-    <!-- TARGET 6 -->
-    <a-entity
-      mindar-image-target="targetIndex: 6"
-      ar-target-loader="pngPrefix: ./animations/target6/frame_; fps: 12; unitWidth: 1; fit: width;">
-    </a-entity>
+    this.plane.setAttribute('visible', false);
+    this.el.appendChild(this.plane);
+  },
 
-    <!-- TARGET 7 -->
-    <a-entity
-      mindar-image-target="targetIndex: 7"
-      ar-target-loader="pngPrefix: ./animations/target7/frame_; fps: 12; unitWidth: 1; fit: width;">
-    </a-entity>
+  onTargetFound() {
+    if (!this.plane) return;
+    
+    this.plane.setAttribute('visible', true);
+    this.startAnimation();
+  },
 
-    <!-- TARGET 8 -->
-    <a-entity
-      mindar-image-target="targetIndex: 8"
-      ar-target-loader="pngPrefix: ./animations/target8/frame_; fps: 12; unitWidth: 1; fit: width;">
-    </a-entity>
+  onTargetLost() {
+    if (!this.plane) return;
+    
+    this.plane.setAttribute('visible', false);
+    this.stopAnimation();
+  },
 
-  </a-scene>
-</body>
-</html>
-```
+  startAnimation() {
+    if (this.isPlaying || this.frames.length === 0) return;
+    
+    this.isPlaying = true;
+    this.currentFrame = 0;
+    this.playLoop();
+  },
 
-## Points clés :
+  stopAnimation() {
+    this.isPlaying = false;
+    if (this.animationId) {
+      clearTimeout(this.animationId);
+      this.animationId = null;
+    }
+  },
 
-1. ✅ **J'ai retiré** `modelsDir` et tous les paramètres `audio*`
-2. ✅ **Gardé uniquement** les paramètres PNG : `pngPrefix`, `fps`, `unitWidth`, `fit`
-3. ✅ Le code `app.js` détectera qu'il n'y a pas d'audio/3D et ne les attendra pas
+  playLoop() {
+    if (!this.isPlaying) return;
 
-## Vérifiez aussi :
+    // Mettre à jour la texture
+    this.plane.setAttribute('material', 'src', this.frames[this.currentFrame]);
 
-**Structure de vos fichiers** :
-```
-animations/
-├── target0/
-│   ├── frame_000.png  ← 3 chiffres (pad: 3 par défaut)
-│   ├── frame_001.png
-│   ├── frame_002.png
-│   └── ...
-├── target1/
-│   ├── frame_000.png
-│   └── ...
-└── target8/
-    └── ...
+    // Frame suivante
+    this.currentFrame = (this.currentFrame + 1) % this.frames.length;
+
+    // Planifier la prochaine frame
+    const interval = 1000 / this.data.fps;
+    this.animationId = setTimeout(() => this.playLoop(), interval);
+  },
+
+  remove() {
+    this.stopAnimation();
+  }
+});
