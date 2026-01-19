@@ -1,17 +1,14 @@
 // ============================================================================
-// AR-TARGET-LOADER : PNG uniquement (sans audio ni 3D)
+// AR-TARGET-LOADER : PNG uniquement (DEBUG VISUEL TÉLÉPHONE)
 // ============================================================================
 
 AFRAME.registerComponent('ar-target-loader', {
   schema: {
-    // PNG animation
     pngPrefix: { type: 'string', default: '' },
     fps: { type: 'number', default: 12 },
     pad: { type: 'number', default: 3 },
-    
-    // Sizing
     unitWidth: { type: 'number', default: 1 },
-    fit: { type: 'string', default: 'width' } // 'width' | 'height' | 'stretch'
+    fit: { type: 'string', default: 'width' }
   },
 
   init() {
@@ -20,24 +17,63 @@ AFRAME.registerComponent('ar-target-loader', {
     this.animationId = null;
     this.plane = null;
     this.isPlaying = false;
+    
+    // Créer l'overlay de debug
+    this.createDebugOverlay();
+    this.log('Init: ' + this.data.pngPrefix.split('/').pop());
 
-    // Écouter les événements de tracking
     this.el.addEventListener('targetFound', this.onTargetFound.bind(this));
     this.el.addEventListener('targetLost', this.onTargetLost.bind(this));
 
-    // Charger les PNGs
     if (this.data.pngPrefix) {
       this.loadPNGAnimation();
+    } else {
+      this.log('❌ Pas de pngPrefix');
     }
+  },
+
+  createDebugOverlay() {
+    // Créer seulement une fois (sur le premier composant)
+    if (document.getElementById('ar-debug')) return;
+    
+    const overlay = document.createElement('div');
+    overlay.id = 'ar-debug';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.8);
+      color: #0f0;
+      font-family: monospace;
+      font-size: 12px;
+      padding: 10px;
+      z-index: 9999;
+      max-height: 200px;
+      overflow-y: auto;
+      border-radius: 5px;
+      pointer-events: none;
+    `;
+    document.body.appendChild(overlay);
+  },
+
+  log(message) {
+    const overlay = document.getElementById('ar-debug');
+    if (!overlay) return;
+    
+    const time = new Date().toLocaleTimeString();
+    overlay.innerHTML += `[${time}] ${message}<br>`;
+    overlay.scrollTop = overlay.scrollHeight;
   },
 
   async loadPNGAnimation() {
     const prefix = this.data.pngPrefix;
     const pad = this.data.pad;
     
-    // Découvrir combien de frames existent
+    this.log(`Cherche: ${prefix}...`);
+    
     let frameIndex = 0;
-    const maxAttempts = 1000; // limite de sécurité
+    const maxAttempts = 500;
     
     while (frameIndex < maxAttempts) {
       const framePath = `${prefix}${String(frameIndex).padStart(pad, '0')}.png`;
@@ -54,13 +90,11 @@ AFRAME.registerComponent('ar-target-loader', {
     }
 
     if (this.frames.length === 0) {
-      console.warn(`Aucune frame PNG trouvée pour ${prefix}`);
+      this.log(`❌ 0 frames: ${prefix}000.png`);
       return;
     }
 
-    console.log(`✅ ${this.frames.length} frames chargées pour ${prefix}`);
-    
-    // Créer le plane d'affichage
+    this.log(`✅ ${this.frames.length} frames OK`);
     this.createPlane();
   },
 
@@ -74,7 +108,6 @@ AFRAME.registerComponent('ar-target-loader', {
   },
 
   createPlane() {
-    // Créer le plane
     this.plane = document.createElement('a-plane');
     this.plane.setAttribute('material', {
       src: this.frames[0],
@@ -83,7 +116,6 @@ AFRAME.registerComponent('ar-target-loader', {
       shader: 'flat'
     });
 
-    // Sizing selon le fit
     const w = this.data.unitWidth;
     const h = this.data.unitWidth;
 
@@ -96,23 +128,33 @@ AFRAME.registerComponent('ar-target-loader', {
         this.plane.setAttribute('width', w);
         this.plane.setAttribute('height', h);
         break;
-      default: // 'width'
+      default:
         this.plane.setAttribute('width', w);
         this.plane.setAttribute('height', 'auto');
     }
 
     this.plane.setAttribute('visible', false);
     this.el.appendChild(this.plane);
+    
+    this.log('Plane créé');
   },
 
   onTargetFound() {
-    if (!this.plane) return;
+    this.log('🎯 CIBLE DETECTEE !');
+    
+    if (!this.plane) {
+      this.log('❌ Pas de plane');
+      return;
+    }
     
     this.plane.setAttribute('visible', true);
+    this.log('Plane visible');
     this.startAnimation();
   },
 
   onTargetLost() {
+    this.log('Cible perdue');
+    
     if (!this.plane) return;
     
     this.plane.setAttribute('visible', false);
@@ -122,6 +164,7 @@ AFRAME.registerComponent('ar-target-loader', {
   startAnimation() {
     if (this.isPlaying || this.frames.length === 0) return;
     
+    this.log(`▶️ Anim: ${this.frames.length}f @ ${this.data.fps}fps`);
     this.isPlaying = true;
     this.currentFrame = 0;
     this.playLoop();
@@ -138,13 +181,9 @@ AFRAME.registerComponent('ar-target-loader', {
   playLoop() {
     if (!this.isPlaying) return;
 
-    // Mettre à jour la texture
     this.plane.setAttribute('material', 'src', this.frames[this.currentFrame]);
-
-    // Frame suivante
     this.currentFrame = (this.currentFrame + 1) % this.frames.length;
 
-    // Planifier la prochaine frame
     const interval = 1000 / this.data.fps;
     this.animationId = setTimeout(() => this.playLoop(), interval);
   },
@@ -153,3 +192,23 @@ AFRAME.registerComponent('ar-target-loader', {
     this.stopAnimation();
   }
 });
+```
+
+## 📱 Ce que vous verrez maintenant :
+
+**En haut à gauche de l'écran**, une boîte noire avec du texte vert qui affichera :
+```
+[14:23:45] Init: target0
+[14:23:45] Cherche: ./animations/target0/frame_...
+[14:23:46] ✅ 24 frames OK
+[14:23:46] Plane créé
+[14:23:50] 🎯 CIBLE DETECTEE !
+[14:23:50] Plane visible
+[14:23:50] ▶️ Anim: 24f @ 12fps
+```
+
+**OU des erreurs :**
+```
+[14:23:46] ❌ 0 frames: ./animations/target0/frame_000.png
+[14:23:50] 🎯 CIBLE DETECTEE !
+[14:23:50] ❌ Pas de plane
