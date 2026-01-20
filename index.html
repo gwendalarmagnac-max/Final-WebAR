@@ -1,20 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="utf-8"/>
-  <title>WebAR — PNG + 3D</title>
+  <title>WebAR — PNG uniquement</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-
   <!-- A-Frame & MindAR -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-
   <!-- Animation mixer (jouer les animations GLB/GLTF) -->
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
-
   <!-- Votre logique -->
   <script defer src="app.js"></script>
-
   <!-- Plein écran + transparence -->
   <style>
     html, body, a-scene, canvas {
@@ -41,28 +37,61 @@
     device-orientation-permission-ui="enabled: true"
   >
     <a-camera look-controls="enabled:false"></a-camera>
-
-    <!-- TARGET 0 : séquence PNG + (option) 3D -->
+    
+    <!-- TARGET 0 : séquence PNG uniquement -->
     <a-entity
       mindar-image-target="targetIndex: 0"
-      ar-target-loader="pngPrefix: ./animations/target0/frame_; fps: 12; unitWidth: 1; fit: width; modelsDir: ./models/target0/; audioPrefix: ./audio/target0/audio_; audioLoop: all; audioVolume: 1; audioNonPos: true;">
+      ar-target-loader="pngPrefix: ./animations/target0/frame_; fps: 12; unitWidth: 1; fit: width;">
     </a-entity>
-
-        <!-- TARGET 1 : séquence PNG + (option) 3D -->
+    
+    <!-- TARGET 1 : séquence PNG uniquement -->
     <a-entity
       mindar-image-target="targetIndex: 1"
-      ar-target-loader="pngPrefix: ./animations/target1/frame_; fps: 12; unitWidth: 1; fit: width; modelsDir: ./models/target1/; audioPrefix: ./audio/target1/audio_; audioLoop: all; audioVolume: 1; audioNonPos: true;">
+      ar-target-loader="pngPrefix: ./animations/target1/frame_; fps: 12; unitWidth: 1; fit: width;">
     </a-entity>
-
-    <!-- TARGET 1 : uniquement 3D (exemple) -->
-    <!--
+    
+    <!-- TARGET 2 : séquence PNG uniquement -->
     <a-entity
-      mindar-image-target="targetIndex: 1"
-      ar-target-loader="modelsDir: ./models/target1/; modelRot: 0 180 0; modelScale: 0.6 0.6 0.6">
+      mindar-image-target="targetIndex: 2"
+      ar-target-loader="pngPrefix: ./animations/target2/frame_; fps: 12; unitWidth: 1; fit: width;">
     </a-entity>
-    -->
-
-    <!-- Pour ajouter d'autres cibles, duplique un bloc ci-dessus en changeant targetIndex et chemins -->
+    
+    <!-- TARGET 3 : séquence PNG uniquement -->
+    <a-entity
+      mindar-image-target="targetIndex: 3"
+      ar-target-loader="pngPrefix: ./animations/target3/frame_; fps: 12; unitWidth: 1; fit: width;">
+    </a-entity>
+    
+    <!-- TARGET 4 : séquence PNG uniquement -->
+    <a-entity
+      mindar-image-target="targetIndex: 4"
+      ar-target-loader="pngPrefix: ./animations/target4/frame_; fps: 12; unitWidth: 1; fit: width;">
+    </a-entity>
+    
+    <!-- TARGET 5 : séquence PNG uniquement -->
+    <a-entity
+      mindar-image-target="targetIndex: 5"
+      ar-target-loader="pngPrefix: ./animations/target5/frame_; fps: 12; unitWidth: 1; fit: width;">
+    </a-entity>
+    
+    <!-- TARGET 6 : séquence PNG uniquement -->
+    <a-entity
+      mindar-image-target="targetIndex: 6"
+      ar-target-loader="pngPrefix: ./animations/target6/frame_; fps: 12; unitWidth: 1; fit: width;">
+    </a-entity>
+    
+    <!-- TARGET 7 : séquence PNG uniquement -->
+    <a-entity
+      mindar-image-target="targetIndex: 7"
+      ar-target-loader="pngPrefix: ./animations/target7/frame_; fps: 12; unitWidth: 1; fit: width;">
+    </a-entity>
+    
+    <!-- TARGET 8 : séquence PNG uniquement -->
+    <a-entity
+      mindar-image-target="targetIndex: 8"
+      ar-target-loader="pngPrefix: ./animations/target8/frame_; fps: 12; unitWidth: 1; fit: width;">
+    </a-entity>
+    
   </a-scene>
 </body>
 </html>
